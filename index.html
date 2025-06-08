@@ -192,11 +192,12 @@
             background-size: 16px;
             padding-right: 48px;
             cursor: pointer;
+            z-index: 10;
         }
 
-        .chat-select:hover {
-            border-color: var(--tg-theme-button-color, #2481cc);
-            box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.1);
+        .chat-select option {
+            padding: 10px;
+            font-size: 15px;
         }
 
         .chat-select:focus {
@@ -583,13 +584,29 @@
         .role-badge.important {
             animation: pulse 2s infinite;
         }
+
+        .header-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all var(--transition-speed);
+            object-fit: cover;
+            border: 3px solid rgba(255,255,255,0.2);
+        }
+
+        .header-avatar:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- Заголовок -->
         <div class="header">
-            <img src="https://raw.githubusercontent.com/aiogram/aiogram/dev-3.x/docs/static/logo.png" alt="Logo">
+            <img id="headerAvatar" class="header-avatar" src="https://raw.githubusercontent.com/aiogram/aiogram/dev-3.x/docs/static/logo.png" alt="Bot Avatar">
             <h1>Панель модерации</h1>
             <p>Управление чатами и статистика модераторов</p>
         </div>
@@ -880,10 +897,31 @@
                     const option = document.createElement('option');
                     option.value = chat.id;
                     option.textContent = chat.title;
+                    option.dataset.avatar = chat.avatar || 'https://raw.githubusercontent.com/aiogram/aiogram/dev-3.x/docs/static/logo.png';
                     select.appendChild(option);
+                });
+
+                // Добавляем обработчик изменения выбора чата
+                select.addEventListener('change', (e) => {
+                    const selectedOption = e.target.options[e.target.selectedIndex];
+                    const avatarUrl = selectedOption.dataset.avatar;
+                    const headerAvatar = document.getElementById('headerAvatar');
+                    
+                    if (selectedOption.value) {
+                        headerAvatar.src = avatarUrl;
+                        loadModeratorInfo(selectedOption.value);
+                        loadStats(1); // Загружаем статистику за день по умолчанию
+                    } else {
+                        headerAvatar.src = 'https://raw.githubusercontent.com/aiogram/aiogram/dev-3.x/docs/static/logo.png';
+                        document.getElementById('moderatorInfo').style.display = 'none';
+                        document.getElementById('emptyState').style.display = 'block';
+                    }
                 });
             } catch (error) {
                 console.error('Ошибка при загрузке чатов:', error);
+                // Показываем сообщение об ошибке пользователю
+                const select = document.getElementById('chatSelect');
+                select.innerHTML = '<option value="">Ошибка загрузки чатов</option>';
             }
         }
 
@@ -894,18 +932,6 @@
                 btn.classList.add('active');
                 loadStats(btn.dataset.period);
             });
-        });
-
-        // Обработчик выбора чата
-        document.getElementById('chatSelect').addEventListener('change', (e) => {
-            const chatId = e.target.value;
-            if (chatId) {
-                loadModeratorInfo(chatId);
-                loadStats(1); // Загружаем статистику за день по умолчанию
-            } else {
-                document.getElementById('moderatorInfo').style.display = 'none';
-                document.getElementById('emptyState').style.display = 'block';
-            }
         });
 
         // Функция для загрузки информации о модераторе
@@ -923,6 +949,9 @@
                     data.isAnonymous ? 'Анонимный режим включен' : 'Анонимный режим выключен';
             } catch (error) {
                 console.error('Ошибка при загрузке информации о модераторе:', error);
+                // Показываем сообщение об ошибке пользователю
+                document.getElementById('moderatorInfo').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
             }
         }
 
@@ -937,8 +966,10 @@
         });
 
         // Инициализация
-        loadChats();
-        document.querySelector('.period-btn[data-period="1"]').click();
+        document.addEventListener('DOMContentLoaded', () => {
+            loadChats();
+            document.querySelector('.period-btn[data-period="1"]').click();
+        });
     </script>
 </body>
 </html> 
